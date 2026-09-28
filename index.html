@@ -11,25 +11,34 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0c0b12;
-    --panel: #15131f;
-    --panel-2: #1c1929;
-    --line: #2a2640;
-    --text: #ece9f6;
-    --muted: #9a94b3;
-    --accent: #8b5cf6;
-    --accent-2: #ec4899;
-    --ok: #34d399;
-    --warn: #fbbf24;
-    --err: #f87171;
-    --radius: 14px;
+    --bg: #ffffff;
+    --dot: #f9b4d4;
+    --panel: #ffffff;
+    --panel-2: #fff0f6;
+    --line: #fbcfe3;
+    --text: #3b1030;
+    --muted: #9d5a84;
+    --accent: #ec4899;
+    --accent-2: #db2777;
+    --ok: #047857;
+    --warn: #b45309;
+    --err: #dc2626;
+    --cover-1: #fde2ef;
+    --cover-2: #fbcfe3;
+    --badge-live: #f3d9a6;
+    --badge-done: #a7e3cb;
+    --backdrop: rgba(120, 20, 80, .28);
+    --radius: 18px;
+    color-scheme: light;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
-    background: radial-gradient(1200px 600px at 10% -10%, #2a1650 0%, transparent 60%),
-                radial-gradient(900px 500px at 110% 10%, #3a1236 0%, transparent 55%),
-                var(--bg);
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dot) 22%, transparent 23%),
+                      radial-gradient(var(--dot) 22%, transparent 23%);
+    background-size: 56px 56px;
+    background-position: 0 0, 28px 28px;
     background-attachment: fixed;
     color: var(--text);
     font: 15px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -39,15 +48,15 @@
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
 
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 0; flex-wrap: wrap; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.02em; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; padding: 6px 14px 6px 6px; flex-wrap: wrap; }
   .logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
           background: linear-gradient(135deg, var(--accent), var(--accent-2)); font-size: 18px; }
-  .credits { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line);
+  .credits { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 2px solid var(--line);
              padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); }
   .credits b { color: var(--text); }
   .credits button { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0; font-size: 14px; }
 
-  .hero { padding: 12px 0 24px; }
+  .hero { padding: 18px 20px; margin-bottom: 20px; background: rgba(255,255,255,.92); border: 2px solid var(--line); border-radius: var(--radius); }
   .hero h1 { font-size: clamp(26px, 4vw, 40px); margin: 0 0 6px; letter-spacing: -.03em; line-height: 1.15; }
   .hero h1 span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .hero p { margin: 0; color: var(--muted); }
@@ -55,7 +64,7 @@
   .grid { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 20px; align-items: start; padding-bottom: 48px; }
   @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
 
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card { background: var(--panel); border: 2px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: 0 8px 24px rgba(236, 72, 153, .12); }
   .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
   .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--panel-2); border-radius: 10px; padding: 4px; margin-bottom: 16px; }
@@ -99,6 +108,9 @@
   .btn.primary { width: 100%; margin-top: 18px; padding: 14px; font-size: 16px; border: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #fff; }
   .btn.small { padding: 6px 10px; font-size: 13px; }
   .btn.ghost { background: none; }
+  .greet { background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; font-weight: 500; letter-spacing: 0; cursor: pointer; padding: 0 0 0 6px; }
+  .greet:hover { color: var(--text); }
+  #heroName:not(:empty) { display: block; font-size: .55em; color: var(--muted); -webkit-text-fill-color: currentColor; background: none; margin-bottom: 4px; }
   #keyBtn.needs { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border: 0; color: #fff; }
 
   .lyric-helper { display: flex; gap: 8px; margin-top: 8px; }
@@ -111,16 +123,16 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .tracks { display: grid; gap: 14px; }
-  .empty { text-align: center; color: var(--muted); padding: 48px 16px; border: 1px dashed var(--line); border-radius: var(--radius); }
+  .empty { text-align: center; color: var(--muted); padding: 48px 16px; border: 2px dashed var(--line); border-radius: var(--radius); background: var(--panel); }
   .empty .big { font-size: 40px; }
 
-  .track { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
-  .cover { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; background: linear-gradient(135deg, #2b2340, #3b1f3a); display: grid; place-items: center; font-size: 30px; }
+  .track { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; background: var(--panel); border: 2px solid var(--line); box-shadow: 0 6px 18px rgba(236, 72, 153, .10); border-radius: var(--radius); padding: 14px; }
+  .cover { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; background: linear-gradient(135deg, var(--cover-1), var(--cover-2)); display: grid; place-items: center; font-size: 30px; }
   .track h3 { margin: 0; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .meta { color: var(--muted); font-size: 12px; margin: 2px 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
-  .badge.live { color: var(--warn); border-color: #5a4a1a; }
-  .badge.done { color: var(--ok); border-color: #1d4d3c; }
+  .badge.live { color: var(--warn); border-color: var(--badge-live); }
+  .badge.done { color: var(--ok); border-color: var(--badge-done); }
   audio { width: 100%; height: 36px; margin-top: 4px; }
   .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .track .lyrics-view { grid-column: 1 / -1; white-space: pre-wrap; font-size: 13px; color: var(--muted); background: var(--panel-2); border-radius: 10px; padding: 12px; max-height: 260px; overflow: auto; display: none; }
@@ -130,13 +142,13 @@
     .cover { width: 64px; height: 64px; }
   }
 
-  .pending { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; background: var(--panel); border: 1px dashed var(--accent); border-radius: var(--radius); padding: 14px; }
+  .pending { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; background: var(--panel); box-shadow: 0 6px 18px rgba(236, 72, 153, .10); border: 1px dashed var(--accent); border-radius: var(--radius); padding: 14px; }
   .pending .cover { animation: pulse 1.6s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .5; } }
   @media (max-width: 480px) { .pending { grid-template-columns: 64px 1fr; } }
 
   dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; width: min(520px, calc(100vw - 32px)); }
-  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog::backdrop { background: var(--backdrop); }
   dialog h3 { margin: 0 0 4px; }
   dialog .foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
 
@@ -145,14 +157,16 @@
   .lyrics-option:hover { border-color: var(--accent); }
   .lyrics-option pre { margin: 6px 0 0; white-space: pre-wrap; font: 12px/1.5 ui-monospace, Menlo, monospace; color: var(--muted); max-height: 160px; overflow: hidden; }
 
-  footer { color: var(--muted); font-size: 12px; text-align: center; padding: 0 0 32px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin: 0 auto 32px; width: fit-content; background: var(--panel); padding: 6px 14px; border-radius: 999px; border: 2px solid var(--line); }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><div class="logo">🎵</div> SongForge</div>
+    <div class="brand"><div class="logo">🎵</div> SongForge
+      <button class="greet hidden" id="greet" type="button" title="Change your name"></button>
+    </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <div class="credits" title="Remaining Suno API credits">
         Credits: <b id="credits">—</b>
@@ -163,7 +177,7 @@
   </header>
 
   <section class="hero">
-    <h1>Turn an idea into a <span>full song</span>.</h1>
+    <h1><span id="heroName"></span>Turn an idea into a <span>full song</span>.</h1>
     <p>Describe a vibe, or take full control with your own lyrics, style and structure. Each request creates two variations.</p>
   </section>
 
@@ -268,10 +282,24 @@
   <footer>Powered by the <a href="https://docs.sunoapi.org" target="_blank" rel="noopener">Suno API</a>.</footer>
 </div>
 
+<!-- Welcome / name dialog -->
+<dialog id="nameDialog">
+  <form method="dialog" id="nameForm">
+    <h3>👋 Welcome to SongForge!</h3>
+    <div style="color:var(--muted);font-size:13px">What should we call you? We'll use it to personalize your studio.</div>
+    <label for="nameInput">Your name</label>
+    <input type="text" id="nameInput" maxlength="40" placeholder="e.g. Alex" autocomplete="given-name" />
+    <div class="foot">
+      <button class="btn ghost" value="skip" formnovalidate>Skip</button>
+      <button class="btn" style="background:var(--accent);border:0;color:#fff" value="save">Let's make music</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- API key dialog -->
 <dialog id="keyDialog">
   <form method="dialog">
-    <h3>Your Suno API key</h3>
+    <h3 id="keyTitle">Your Suno API key</h3>
     <div style="color:var(--muted);font-size:13px">
       Get one at <a href="https://sunoapi.org/api-key" target="_blank" rel="noopener">sunoapi.org/api-key</a>.
       It's stored only in this browser and sent only to api.sunoapi.org.
@@ -321,6 +349,7 @@
   const STORE_KEY = "songforge.tracks.v1";
   const PENDING_KEY = "songforge.pending.v1";
   const KEY_STORE = "songforge.apikey";
+  const NAME_STORE = "songforge.name";
   const POLL_MS = 6000;
   const TIMEOUT_MS = 12 * 60 * 1000;
 
@@ -390,6 +419,36 @@
   // Drop empty strings / undefined so we never send fields Suno would reject.
   const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== "" && v !== null));
 
+  // ---------- Name / personalization ----------
+  const getName = () => { try { return localStorage.getItem(NAME_STORE) || ""; } catch { return ""; } };
+  // n() -> ", Emma" (or "" when no name); n("") -> "Emma"
+  const n = (pre = ", ") => (getName() ? pre + getName() : "");
+  function greeting() {
+    const h = new Date().getHours();
+    return h < 5 ? "Up late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  }
+  function syncName() {
+    const name = getName();
+    $("greet").textContent = name ? `· hi, ${name} ✏️` : "";
+    $("greet").classList.toggle("hidden", !name);
+    $("heroName").textContent = name ? `${greeting()}, ${name} 👋` : "";
+    $("keyTitle").textContent = name ? `${name}, add your Suno API key` : "Your Suno API key";
+    renderTracks();
+  }
+  function openNameDialog() {
+    $("nameInput").value = getName();
+    $("nameDialog").showModal();
+  }
+  $("greet").onclick = openNameDialog;
+  $("nameDialog").addEventListener("close", () => {
+    if ($("nameDialog").returnValue === "save") {
+      try { localStorage.setItem(NAME_STORE, $("nameInput").value.trim().slice(0, 40)); } catch {}
+    }
+    syncName();
+    if (!getKey()) openKeyDialog();
+    else if (getName()) setStatus(`Welcome${n()}! What are we making today?`, "ok");
+  });
+
   // ---------- API key ----------
   function openKeyDialog() {
     $("apiKeyInput").value = getKey();
@@ -409,6 +468,7 @@
     } catch {}
     syncKeyButton();
     if (v === "save" || v === "remove") refreshCredits();
+    if (v === "save" && getKey()) setStatus(`You're all set${n()}! Describe a song and hit Generate.`, "ok");
   });
   $("toggleKey").onclick = () => {
     const i = $("apiKeyInput"); i.type = i.type === "password" ? "text" : "password";
@@ -490,7 +550,7 @@
     let payload, label;
     if (mode === "simple") {
       const prompt = $("prompt").value.trim();
-      if (!prompt && !style) return setStatus("Describe your song first.", "err");
+      if (!prompt && !style) return setStatus(`Tell me what to make${n()} — describe your song first.`, "err");
       payload = clean({ customMode: false, instrumental, model: $("model").value, prompt, style });
       label = prompt || style;
     } else {
@@ -514,12 +574,12 @@
 
     const btn = $("generateBtn");
     btn.disabled = true;
-    setStatus("Submitting to Suno…", "busy");
+    setStatus(`Sending your idea to Suno${n()}…`, "busy");
     try {
       const { taskId } = await api("/generate", payload);
       const job = { taskId, label, model: payload.model, kind: "generate", started: Date.now() };
       pending.unshift(job); save();
-      setStatus("Composing! This usually takes 1–3 minutes. You can queue more songs meanwhile.", "busy");
+      setStatus(`Composing your song${n()}! This usually takes 1–3 minutes — feel free to queue more.`, "busy");
       renderPending();
       poll(job);
     } catch (err) {
@@ -558,7 +618,7 @@
         if (d?.status === "SUCCESS" && items.length) {
           addTracks(items, job);
           finishJob(job);
-          setStatus(`"${items[0].title || job.label}" is ready!`, "ok");
+          setStatus(`🎉 ${getName() ? getName() + ", " : ""}"${items[0].title || job.label}" is ready to play!`, "ok");
           refreshCredits();
           return;
         }
@@ -566,7 +626,7 @@
       throw new Error("Timed out waiting for Suno. Check again later.");
     } catch (err) {
       finishJob(job);
-      setStatus(`${job.label.slice(0, 50)}: ${err.message}`, "err");
+      setStatus(`Sorry${n()} — "${job.label.slice(0, 40)}" didn't work: ${err.message}`, "err");
     } finally {
       polling.delete(job.taskId);
     }
@@ -605,7 +665,7 @@
   function renderTracks() {
     $("trackCount").textContent = tracks.length;
     if (!tracks.length) {
-      $("trackList").innerHTML = `<div class="empty"><div class="big">🎧</div><div>No songs yet. Describe one on the left and hit <b>Generate</b>.</div></div>`;
+      $("trackList").innerHTML = `<div class="empty"><div class="big">🎧</div><div>${getName() ? `Your library is empty, ${esc(getName())}.` : "No songs yet."} Describe one and hit <b>Generate</b>.</div></div>`;
       return;
     }
     $("trackList").innerHTML = tracks.map((t, i) => `
@@ -688,7 +748,7 @@
       const { taskId } = await api("/generate/extend", body);
       const job = { taskId, label: t.title, model: body.model, kind: "extend", started: Date.now() };
       pending.unshift(job); save(); renderPending();
-      setStatus("Extending your track…", "busy");
+      setStatus(`Extending "${t.title}" for you${n()}…`, "busy");
       $("pendingList").scrollIntoView({ behavior: "smooth" });
       poll(job);
     } catch (err) { setStatus(err.message, "err"); }
@@ -700,7 +760,7 @@
     if (!idea) { $("lyricIdea").focus(); return; }
     const btn = $("writeLyrics");
     btn.disabled = true; btn.textContent = "Writing…";
-    setStatus("Writing lyrics…", "busy");
+    setStatus(`Writing lyrics for you${n()}…`, "busy");
     try {
       const { taskId } = await api("/lyrics", { prompt: idea.slice(0, 200) });
       const start = Date.now();
@@ -711,7 +771,7 @@
           const opts = (d.response?.data || []).filter((x) => x.status !== "failed" && x.text);
           if (!opts.length) throw new Error("No lyrics came back — try another idea.");
           showLyricsPicker(opts);
-          setStatus("Lyrics ready — pick a version.", "ok");
+          setStatus(`Lyrics ready${n()} — pick your favorite version.`, "ok");
           refreshCredits();
           return;
         }
@@ -744,7 +804,12 @@
   // ---------- Init ----------
   $("refreshCredits").onclick = refreshCredits;
   syncKeyButton();
-  if (!getKey()) openKeyDialog();
+  syncName();
+  let asked = false;
+  try { asked = !!localStorage.getItem(NAME_STORE + ".asked"); localStorage.setItem(NAME_STORE + ".asked", "1"); } catch {}
+  if (!getName() && !asked) {
+    openNameDialog();
+  } else if (!getKey()) openKeyDialog();
   setMode("simple");
   renderTracks();
   renderPending();

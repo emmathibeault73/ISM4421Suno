@@ -12,6 +12,8 @@ It's plain HTML, CSS and JS with no build step and no backend. It deploys to Net
 - **Library**: stored in the browser. Includes a player, cover art, download, lyrics view, copy link, reuse settings and delete.
 - **Extend**: continue any generated track from a timestamp you choose.
 - **Credit balance** shown in the header.
+- **Personalized**: asks for your name on first visit, then greets you and uses your name in status messages. Click "hi, <name> ✏️" to change it.
+- **Pink & white polka-dot** design that works on desktop and mobile.
 
 ## API key
 Each user enters their own Suno API key (get one at https://sunoapi.org/api-key) with the 🔑 button.
