@@ -29,6 +29,19 @@ Optional: Authentication → Sign In / Providers → Email → turn off **Confir
 Supabase's built-in email sender is limited to a few emails per hour, so add custom SMTP for real traffic.
 You can see who signed up and when they last signed in under Authentication → Users.
 
+## Profiles
+Every account gets a profile row automatically when it signs up (a database trigger seeds it with the sign-up name).
+New users see a "Set up your profile" screen. After that, click your avatar or "hi, <name> ✏️" to edit it.
+- **Photo**: uploaded to the `avatars` Storage bucket under `<user id>/` (PNG/JPG/WebP/GIF, max 2 MB). The old photo is deleted when it's replaced.
+- **Display name**: drives all the personalized greetings.
+- **@username**: unique, 3–30 characters of lowercase letters, numbers and `_`. Taken names are rejected with a friendly message.
+- **Bio**: up to 280 characters.
+- **Favorite genres**: up to 10, shown first (★) in the style tags.
+- **Default model**: preselected in the composer.
+
+Database: `public.profiles`, with Row Level Security so each user can only read and update their own row.
+Schema and policies are in [`supabase/migrations/`](supabase/migrations/).
+
 ## API key
 Each user enters their own Suno API key (get one at https://sunoapi.org/api-key) with the 🔑 button.
 The key is saved only in that browser's `localStorage` and is sent only to `api.sunoapi.org`.

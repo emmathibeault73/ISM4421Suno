@@ -81,7 +81,7 @@
   textarea { resize: vertical; min-height: 90px; }
   #lyrics { min-height: 170px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; clear: both; }
   .chip { border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
   .chip:hover { color: var(--text); border-color: var(--accent); }
 
@@ -176,6 +176,26 @@
   .user-chip { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: 13px; color: var(--muted); max-width: 100%; }
   .user-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
   .booting #authGate .auth-card { visibility: hidden; }
+
+  /* ---------- Profile ---------- */
+  .avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: none; display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: 700; font-size: 13px; overflow: hidden; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar.lg { width: 84px; height: 84px; font-size: 32px; border: 3px solid var(--line); }
+  .avatar-btn { background: none; border: 0; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; color: inherit; font: inherit; min-width: 0; }
+  .avatar-btn:hover span { color: var(--text); }
+  #profileDialog { width: min(560px, calc(100vw - 32px)); }
+  #profileDialog form { max-height: calc(100vh - 80px); overflow: auto; }
+  .profile-top { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .profile-top .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .handle { display: flex; align-items: center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
+  .handle span { padding-left: 12px; color: var(--muted); }
+  .handle input { border: 0; background: none; padding-left: 4px; }
+  .handle:focus-within { border-color: var(--accent); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip.fav::before { content: "★ "; }
+  .profile-meta { color: var(--muted); font-size: 12px; margin-top: 14px; }
+  .form-err { color: var(--err); font-size: 13px; margin-top: 10px; min-height: 1em; }
 </style>
 </head>
 <body class="signed-out booting">
@@ -217,7 +237,7 @@
 <div class="wrap">
   <header>
     <div class="brand"><div class="logo">🎵</div> SongForge
-      <button class="greet hidden" id="greet" type="button" title="Change your name"></button>
+      <button class="greet hidden" id="greet" type="button" title="Edit your profile"></button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <div class="credits" title="Remaining Suno API credits">
@@ -225,7 +245,12 @@
         <button id="refreshCredits" aria-label="Refresh credits">↻</button>
       </div>
       <button class="btn small" id="keyBtn" type="button">🔑 Add API key</button>
-      <div class="user-chip"><span id="userEmail"></span><button class="btn small" id="signOutBtn" type="button">Sign out</button></div>
+      <div class="user-chip">
+        <button class="avatar-btn" id="profileBtn" type="button" title="Edit your profile">
+          <div class="avatar" id="headerAvatar">?</div><span id="userEmail"></span>
+        </button>
+        <button class="btn small" id="signOutBtn" type="button">Sign out</button>
+      </div>
     </div>
   </header>
 
@@ -335,16 +360,53 @@
   <footer>Powered by the <a href="https://docs.sunoapi.org" target="_blank" rel="noopener">Suno API</a>.</footer>
 </div>
 
-<!-- Welcome / name dialog -->
-<dialog id="nameDialog">
-  <form method="dialog" id="nameForm">
-    <h3>👋 Welcome to SongForge!</h3>
-    <div style="color:var(--muted);font-size:13px">What should we call you? We'll use it to personalize your studio.</div>
-    <label for="nameInput">Your name</label>
-    <input type="text" id="nameInput" maxlength="40" placeholder="e.g. Alex" autocomplete="given-name" />
+<!-- Profile dialog -->
+<dialog id="profileDialog">
+  <form id="profileForm" novalidate>
+    <h3 id="profileTitle">Your profile</h3>
+    <div style="color:var(--muted);font-size:13px" id="profileSub">This is how SongForge knows you.</div>
+
+    <div class="profile-top">
+      <div class="avatar lg" id="profileAvatar">?</div>
+      <div>
+        <div class="btns">
+          <button type="button" class="btn small" id="avatarPick">📷 Upload photo</button>
+          <button type="button" class="btn small ghost hidden" id="avatarRemove">Remove</button>
+        </div>
+        <div style="color:var(--muted);font-size:12px;margin-top:6px">PNG, JPG, WebP or GIF · max 2 MB</div>
+        <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="pfName">Display name</label>
+        <input type="text" id="pfName" maxlength="40" placeholder="Alex" autocomplete="nickname" />
+      </div>
+      <div>
+        <label for="pfUsername">Username <span class="hint">optional</span></label>
+        <div class="handle"><span>@</span><input type="text" id="pfUsername" maxlength="30" placeholder="alex_beats" autocomplete="off" spellcheck="false" /></div>
+      </div>
+    </div>
+
+    <label for="pfBio">Bio <span class="hint"><span id="pfBioCount">0</span>/280</span></label>
+    <textarea id="pfBio" maxlength="280" style="min-height:70px" placeholder="Bedroom producer, synth-pop lover…"></textarea>
+
+    <label>Favorite genres <span class="hint">up to 10 · shown first in style tags</span></label>
+    <div class="chips" id="pfGenres"></div>
+
+    <label for="pfModel">Default model</label>
+    <select id="pfModel">
+      <option value="V6">V6 — best quality</option>
+      <option value="V6_WILD">V6 Wild — experimental</option>
+      <option value="V6_MINI">V6 Mini — fastest</option>
+    </select>
+
+    <div class="profile-meta" id="profileMeta"></div>
+    <div class="form-err" id="profileErr" role="alert"></div>
     <div class="foot">
-      <button class="btn ghost" value="skip" formnovalidate>Skip</button>
-      <button class="btn" style="background:var(--accent);border:0;color:#fff" value="save">Let's make music</button>
+      <button type="button" class="btn" id="profileCancel">Cancel</button>
+      <button type="submit" class="btn" style="background:var(--accent);border:0;color:#fff" id="profileSave">Save profile</button>
     </div>
   </form>
 </dialog>
@@ -492,20 +554,190 @@
     $("keyTitle").textContent = name ? `${name}, add your Suno API key` : "Your Suno API key";
     renderTracks();
   }
-  function openNameDialog() {
-    $("nameInput").value = getName();
-    $("nameDialog").showModal();
+  // ---------- Profile (Supabase `profiles` table + `avatars` storage) ----------
+  let currentUser = null;
+  let profile = null;          // row from public.profiles
+  let draftAvatar;             // undefined = unchanged, null = removed, string = newly uploaded URL
+  let draftGenres = [];
+  let onboarding = false;
+
+  const setLocalName = (name) => { try { localStorage.setItem(NAME_STORE, name || ""); } catch {} };
+  const initial = (name, email) => (name || email || "?").trim().charAt(0).toUpperCase() || "?";
+  function paintAvatar(el, url, name) {
+    el.innerHTML = url ? `<img src="${esc(url)}" alt="">` : esc(initial(name, currentUser?.email));
   }
-  $("greet").onclick = openNameDialog;
-  $("nameDialog").addEventListener("close", () => {
-    if ($("nameDialog").returnValue === "save") {
-      const name = $("nameInput").value.trim().slice(0, 40);
-      try { localStorage.setItem(NAME_STORE, name); } catch {}
-      sb?.auth.updateUser({ data: { name } }).catch(() => {});
-    }
+  const avatarPath = (url) => {
+    const m = String(url || "").match(/\/object\/public\/avatars\/(.+)$/);
+    return m ? decodeURIComponent(m[1].split("?")[0]) : null;
+  };
+
+  function applyProfile() {
+    if (!profile) return;
+    if (profile.display_name) setLocalName(profile.display_name);
+    paintAvatar($("headerAvatar"), profile.avatar_url, getName());
+    $("userEmail").textContent = profile.username ? "@" + profile.username : currentUser.email;
+    $("model").value = profile.default_model || "V6";
+    renderStyleChips();
     syncName();
-    if (!getKey()) openKeyDialog();
-    else if (getName()) setStatus(`Welcome${n()}! What are we making today?`, "ok");
+  }
+
+  async function loadProfile() {
+    const { data, error } = await sb.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
+    if (error) { console.warn("profile load failed", error); return; }
+    profile = data;
+    if (!profile) {
+      // Safety net if the sign-up trigger didn't run: create the row ourselves.
+      const seed = { id: currentUser.id, display_name: getName() || currentUser.user_metadata?.name || null };
+      const res = await sb.from("profiles").upsert(seed).select().single();
+      if (res.error) { console.warn("profile create failed", res.error); return; }
+      profile = res.data;
+    } else if (!profile.display_name && getName()) {
+      const res = await sb.from("profiles").update({ display_name: getName() }).eq("id", currentUser.id).select().single();
+      if (!res.error) profile = res.data;
+    }
+    applyProfile();
+  }
+
+  function renderGenreChips() {
+    $("pfGenres").innerHTML = STYLES.map((g) =>
+      `<button type="button" class="chip${draftGenres.includes(g) ? " on" : ""}" data-g="${esc(g)}">${esc(g)}</button>`).join("");
+  }
+  $("pfGenres").addEventListener("click", (e) => {
+    const g = e.target.closest("[data-g]")?.dataset.g;
+    if (!g) return;
+    if (draftGenres.includes(g)) draftGenres = draftGenres.filter((x) => x !== g);
+    else if (draftGenres.length < 10) draftGenres.push(g);
+    renderGenreChips();
+  });
+
+  function openProfileDialog(isOnboarding = false) {
+    onboarding = isOnboarding;
+    const p = profile || {};
+    $("profileTitle").textContent = isOnboarding ? "👋 Set up your profile" : "Your profile";
+    $("profileSub").textContent = isOnboarding
+      ? "Tell us a bit about you — we'll use it to personalize your studio. You can change this anytime."
+      : "This is how SongForge knows you.";
+    $("profileCancel").textContent = isOnboarding ? "Skip for now" : "Cancel";
+    $("pfName").value = p.display_name || getName();
+    $("pfUsername").value = p.username || "";
+    $("pfBio").value = p.bio || "";
+    $("pfBioCount").textContent = $("pfBio").value.length;
+    $("pfModel").value = p.default_model || "V6";
+    draftGenres = [...(p.favorite_genres || [])];
+    draftAvatar = undefined;
+    paintAvatar($("profileAvatar"), p.avatar_url, $("pfName").value);
+    $("avatarRemove").classList.toggle("hidden", !p.avatar_url);
+    renderGenreChips();
+    const since = p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" }) : "";
+    $("profileMeta").textContent = [currentUser?.email, since && `Member since ${since}`, `${tracks.length} song${tracks.length === 1 ? "" : "s"} in your library`].filter(Boolean).join(" · ");
+    $("profileErr").textContent = "";
+    if (!$("profileDialog").open) $("profileDialog").showModal();
+  }
+
+  function closeProfileDialog() {
+    // Discard a freshly uploaded photo that was never saved.
+    if (typeof draftAvatar === "string") {
+      const path = avatarPath(draftAvatar);
+      if (path) sb.storage.from("avatars").remove([path]).catch(() => {});
+    }
+    draftAvatar = undefined;
+    $("profileDialog").close();
+    if (onboarding) {
+      onboarding = false;
+      if (!getKey()) openKeyDialog();
+      else setStatus(`Welcome${n()}! What are we making today?`, "ok");
+    }
+  }
+
+  $("greet").onclick = () => openProfileDialog();
+  $("profileBtn").onclick = () => openProfileDialog();
+  $("profileCancel").onclick = closeProfileDialog;
+  $("profileDialog").addEventListener("cancel", (e) => { e.preventDefault(); closeProfileDialog(); });
+  $("pfBio").addEventListener("input", () => ($("pfBioCount").textContent = $("pfBio").value.length));
+  $("pfName").addEventListener("input", () => {
+    const url = draftAvatar === undefined ? profile?.avatar_url : draftAvatar;
+    if (!url) paintAvatar($("profileAvatar"), null, $("pfName").value);
+  });
+  $("pfUsername").addEventListener("input", () => {
+    const el = $("pfUsername");
+    const v = el.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (v !== el.value) el.value = v;
+  });
+
+  $("avatarPick").onclick = () => $("avatarFile").click();
+  $("avatarFile").addEventListener("change", async () => {
+    const file = $("avatarFile").files[0];
+    $("avatarFile").value = "";
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return ($("profileErr").textContent = "Please choose a PNG, JPG, WebP or GIF image.");
+    if (file.size > 2 * 1024 * 1024) return ($("profileErr").textContent = "That image is over 2 MB — please pick a smaller one.");
+    $("profileErr").textContent = "";
+    $("avatarPick").disabled = true; $("avatarPick").textContent = "Uploading…";
+    try {
+      const ext = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" }[file.type];
+      const path = `${currentUser.id}/avatar-${Date.now()}.${ext}`;
+      const { error } = await sb.storage.from("avatars").upload(path, file, { contentType: file.type, cacheControl: "3600" });
+      if (error) throw error;
+      if (typeof draftAvatar === "string") {
+        const old = avatarPath(draftAvatar);
+        if (old) sb.storage.from("avatars").remove([old]).catch(() => {});
+      }
+      draftAvatar = sb.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      paintAvatar($("profileAvatar"), draftAvatar, $("pfName").value);
+      $("avatarRemove").classList.remove("hidden");
+    } catch (err) {
+      $("profileErr").textContent = `Upload failed: ${err.message || err}`;
+    } finally {
+      $("avatarPick").disabled = false; $("avatarPick").textContent = "📷 Upload photo";
+    }
+  });
+  $("avatarRemove").onclick = () => {
+    if (typeof draftAvatar === "string") {
+      const path = avatarPath(draftAvatar);
+      if (path) sb.storage.from("avatars").remove([path]).catch(() => {});
+    }
+    draftAvatar = null;
+    paintAvatar($("profileAvatar"), null, $("pfName").value);
+    $("avatarRemove").classList.add("hidden");
+  };
+
+  $("profileForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = $("pfUsername").value.trim();
+    if (username && !/^[a-z0-9_]{3,30}$/.test(username)) {
+      return ($("profileErr").textContent = "Usernames are 3–30 characters: lowercase letters, numbers and _.");
+    }
+    const update = {
+      display_name: $("pfName").value.trim().slice(0, 40) || null,
+      username: username || null,
+      bio: $("pfBio").value.trim().slice(0, 280) || null,
+      favorite_genres: draftGenres.slice(0, 10),
+      default_model: $("pfModel").value,
+    };
+    if (draftAvatar !== undefined) update.avatar_url = draftAvatar;
+    const btn = $("profileSave");
+    btn.disabled = true; btn.textContent = "Saving…"; $("profileErr").textContent = "";
+    try {
+      const { data, error } = await sb.from("profiles").update(update).eq("id", currentUser.id).select().single();
+      if (error) {
+        if (error.code === "23505") throw new Error(`@${username} is taken — try another username.`);
+        throw error;
+      }
+      // Remove the previous photo from storage once the new one is saved.
+      const oldPath = draftAvatar !== undefined ? avatarPath(profile?.avatar_url) : null;
+      if (oldPath && oldPath !== avatarPath(data.avatar_url)) sb.storage.from("avatars").remove([oldPath]).catch(() => {});
+      draftAvatar = undefined;
+      profile = data;
+      setLocalName(profile.display_name || "");
+      sb.auth.updateUser({ data: { name: profile.display_name || "" } }).catch(() => {});
+      applyProfile();
+      closeProfileDialog();
+      setStatus(`Profile saved${n()}! ✨`, "ok");
+    } catch (err) {
+      $("profileErr").textContent = err.message || "Couldn't save your profile. Please try again.";
+    } finally {
+      btn.disabled = false; btn.textContent = "Save profile";
+    }
   });
 
   // ---------- API key ----------
@@ -590,16 +822,22 @@
     c.onclick = () => { $("prompt").value = idea; $("prompt").dispatchEvent(new Event("input")); };
     $("ideaChips").appendChild(c);
   });
-  STYLES.forEach((s) => {
-    const c = document.createElement("button");
-    c.type = "button"; c.className = "chip"; c.textContent = s;
-    c.onclick = () => {
-      const cur = $("style").value.split(",").map((x) => x.trim()).filter(Boolean);
-      if (!cur.includes(s)) cur.push(s);
-      $("style").value = cur.join(", ");
-    };
-    $("styleChips").appendChild(c);
-  });
+  function renderStyleChips() {
+    const favs = (profile?.favorite_genres || []).filter(Boolean);
+    const list = [...favs, ...STYLES.filter((x) => !favs.includes(x))];
+    $("styleChips").innerHTML = "";
+    list.forEach((s) => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip" + (favs.includes(s) ? " fav" : ""); c.textContent = s;
+      c.onclick = () => {
+        const cur = $("style").value.split(",").map((x) => x.trim()).filter(Boolean);
+        if (!cur.includes(s)) cur.push(s);
+        $("style").value = cur.join(", ");
+      };
+      $("styleChips").appendChild(c);
+    });
+  }
+  renderStyleChips();
 
   // ---------- Generate ----------
   $("composer").addEventListener("submit", async (e) => {
@@ -971,8 +1209,9 @@
     if (started) return;
     started = true;
     const user = session.user;
+    currentUser = user;
     $("userEmail").textContent = user.email;
-    $("userEmail").title = user.email;
+    $("profileBtn").title = `${user.email} — edit your profile`;
     scopeStorage(user.id);
     const metaName = (user.user_metadata?.name || "").trim();
     if (metaName && !getName()) { try { localStorage.setItem(NAME_STORE, metaName); } catch {} }
@@ -998,12 +1237,7 @@
     $("refreshCredits").onclick = refreshCredits;
     syncKeyButton();
     syncName();
-    let asked = false;
-    try { asked = !!localStorage.getItem(NAME_STORE + ".asked"); localStorage.setItem(NAME_STORE + ".asked", "1"); } catch {}
-    if (!getName() && !asked) {
-      openNameDialog();
-    } else if (!getKey()) openKeyDialog();
-    else if (getName()) setStatus(`Welcome back${n()}! What are we making today?`, "ok");
+    paintAvatar($("headerAvatar"), null, getName());
     setMode("simple");
     renderTracks();
     renderPending();
@@ -1011,6 +1245,13 @@
       if (Date.now() - job.started > TIMEOUT_MS) finishJob(job); else poll(job);
     });
     refreshCredits();
+    loadProfile().finally(() => {
+      let asked = false;
+      try { asked = !!localStorage.getItem(NAME_STORE + ".asked"); localStorage.setItem(NAME_STORE + ".asked", "1"); } catch {}
+      if (!asked && !(profile?.username || profile?.bio || profile?.avatar_url)) openProfileDialog(true);
+      else if (!getKey()) openKeyDialog();
+      else setStatus(`Welcome back${n()}! What are we making today?`, "ok");
+    });
   }
 
   // Opened from a password-reset email: ask for a new password before entering the app.
