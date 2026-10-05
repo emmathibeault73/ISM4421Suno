@@ -15,6 +15,20 @@ It's plain HTML, CSS and JS with no build step and no backend. It deploys to Net
 - **Personalized**: asks for your name on first visit, then greets you and uses your name in status messages. Click "hi, <name> ✏️" to change it.
 - **Pink & white polka-dot** design that works on desktop and mobile.
 
+## Login (Supabase email auth)
+The app is behind an email + password login powered by Supabase Auth
+(project `songforge`, ref `tokuawtoxczyytmetsnk`). Sign-in, sign-up, forgot-password and sign-out are built in.
+Each account gets its own library, API key and name in the browser, and the name typed at sign-up is saved to the account.
+The Supabase URL and **publishable** key are in `index.html`. They're meant to be public, and access is enforced by Supabase Auth.
+
+**One-time Supabase dashboard setup** (Authentication → URL Configuration):
+- **Site URL**: your Netlify URL, e.g. `https://your-site.netlify.app`
+- **Redirect URLs**: add `https://your-site.netlify.app/**`
+
+Optional: Authentication → Sign In / Providers → Email → turn off **Confirm email** if you want people to sign in right after signing up.
+Supabase's built-in email sender is limited to a few emails per hour, so add custom SMTP for real traffic.
+You can see who signed up and when they last signed in under Authentication → Users.
+
 ## API key
 Each user enters their own Suno API key (get one at https://sunoapi.org/api-key) with the 🔑 button.
 The key is saved only in that browser's `localStorage` and is sent only to `api.sunoapi.org`.

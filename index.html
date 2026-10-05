@@ -73,7 +73,7 @@
 
   label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 6px; }
   label .hint { text-transform: none; letter-spacing: 0; font-weight: 400; float: right; }
-  input[type=text], input[type=number], textarea, select {
+  input[type=text], input[type=number], input[type=email], input[type=password], textarea, select {
     width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
     border-radius: 10px; padding: 10px 12px; font: inherit; outline: none; transition: border-color .15s;
   }
@@ -159,9 +159,61 @@
 
   footer { color: var(--muted); font-size: 12px; text-align: center; margin: 0 auto 32px; width: fit-content; background: var(--panel); padding: 6px 14px; border-radius: 999px; border: 2px solid var(--line); }
   .hidden { display: none !important; }
+
+  /* ---------- Auth gate ---------- */
+  body.signed-out > .wrap { display: none; }
+  body:not(.signed-out) > #authGate { display: none; }
+  #authGate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+  .auth-card { width: min(420px, 100%); }
+  .auth-card .brand { width: fit-content; margin: 0 auto 16px; }
+  .auth-card h1 { font-size: 22px; margin: 0 0 4px; text-align: center; letter-spacing: -.02em; }
+  .auth-card .sub { color: var(--muted); text-align: center; font-size: 14px; margin: 0 0 16px; }
+  .linkish { background: none; border: 0; color: var(--accent-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
+  .auth-msg { display: none; margin-top: 14px; padding: 10px 12px; border-radius: 10px; font-size: 14px; background: var(--panel-2); border: 1px solid var(--line); }
+  .auth-msg.show { display: block; }
+  .auth-msg.err { border-color: var(--err); color: var(--err); }
+  .auth-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .user-chip { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: 13px; color: var(--muted); max-width: 100%; }
+  .user-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+  .booting #authGate .auth-card { visibility: hidden; }
 </style>
 </head>
-<body>
+<body class="signed-out booting">
+
+<!-- ============ Sign-in screen (Supabase email auth) ============ -->
+<div id="authGate">
+  <form class="card auth-card" id="authForm" novalidate>
+    <div class="brand"><div class="logo">🎵</div> SongForge</div>
+    <h1 id="authTitle">Welcome back</h1>
+    <p class="sub" id="authSub">Sign in to your music studio.</p>
+
+    <div class="tabs" role="tablist" id="authTabs">
+      <button type="button" class="active" data-auth="signin">Sign in</button>
+      <button type="button" data-auth="signup">Create account</button>
+    </div>
+
+    <div id="authNameWrap" class="hidden">
+      <label for="authName">Your name</label>
+      <input type="text" id="authName" maxlength="40" autocomplete="given-name" placeholder="e.g. Alex" />
+    </div>
+    <div id="authEmailWrap">
+      <label for="authEmail">Email</label>
+      <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com" required />
+    </div>
+    <div id="authPassWrap">
+      <label for="authPass">Password <span class="hint" id="authPassHint"></span></label>
+      <input type="password" id="authPass" autocomplete="current-password" minlength="6" placeholder="••••••••" required />
+    </div>
+
+    <button type="submit" class="btn primary" id="authSubmit">Sign in</button>
+    <div class="auth-foot">
+      <button type="button" class="linkish" id="forgotBtn">Forgot password?</button>
+      <button type="button" class="linkish hidden" id="backBtn">← Back to sign in</button>
+    </div>
+    <div class="auth-msg" id="authMsg" role="status"></div>
+  </form>
+</div>
+
 <div class="wrap">
   <header>
     <div class="brand"><div class="logo">🎵</div> SongForge
@@ -173,6 +225,7 @@
         <button id="refreshCredits" aria-label="Refresh credits">↻</button>
       </div>
       <button class="btn small" id="keyBtn" type="button">🔑 Add API key</button>
+      <div class="user-chip"><span id="userEmail"></span><button class="btn small" id="signOutBtn" type="button">Sign out</button></div>
     </div>
   </header>
 
@@ -343,13 +396,17 @@
   <div class="foot"><button class="btn" id="lyricsClose" type="button">Close</button></div>
 </dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-  const STORE_KEY = "songforge.tracks.v1";
-  const PENDING_KEY = "songforge.pending.v1";
-  const KEY_STORE = "songforge.apikey";
-  const NAME_STORE = "songforge.name";
+  // Supabase project (the publishable key is meant to be public; access is controlled by Supabase Auth).
+  const SUPABASE_URL = "https://tokuawtoxczyytmetsnk.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_ZFSjYYrKqq2WTwtzSB9ElA_tHFE6bV-";
+
+  // Storage keys are scoped per signed-in user (see scopeStorage) so accounts sharing a browser stay separate.
+  const LEGACY = { tracks: "songforge.tracks.v1", pending: "songforge.pending.v1", key: "songforge.apikey", name: "songforge.name" };
+  let STORE_KEY = LEGACY.tracks, PENDING_KEY = LEGACY.pending, KEY_STORE = LEGACY.key, NAME_STORE = LEGACY.name;
   const POLL_MS = 6000;
   const TIMEOUT_MS = 12 * 60 * 1000;
 
@@ -364,8 +421,8 @@
   const STYLES = ["pop", "rock", "hip hop", "lo-fi", "EDM", "R&B", "country", "jazz", "synthwave", "acoustic", "orchestral", "reggaeton", "k-pop", "indie folk"];
 
   let mode = "simple";
-  let tracks = load(STORE_KEY, []);
-  let pending = load(PENDING_KEY, []);
+  let tracks = [];
+  let pending = [];
 
   function load(k, fallback) {
     try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; }
@@ -442,7 +499,9 @@
   $("greet").onclick = openNameDialog;
   $("nameDialog").addEventListener("close", () => {
     if ($("nameDialog").returnValue === "save") {
-      try { localStorage.setItem(NAME_STORE, $("nameInput").value.trim().slice(0, 40)); } catch {}
+      const name = $("nameInput").value.trim().slice(0, 40);
+      try { localStorage.setItem(NAME_STORE, name); } catch {}
+      sb?.auth.updateUser({ data: { name } }).catch(() => {});
     }
     syncName();
     if (!getKey()) openKeyDialog();
@@ -801,22 +860,181 @@
   }
   $("lyricsClose").onclick = () => $("lyricsDialog").close();
 
-  // ---------- Init ----------
-  $("refreshCredits").onclick = refreshCredits;
-  syncKeyButton();
-  syncName();
-  let asked = false;
-  try { asked = !!localStorage.getItem(NAME_STORE + ".asked"); localStorage.setItem(NAME_STORE + ".asked", "1"); } catch {}
-  if (!getName() && !asked) {
-    openNameDialog();
-  } else if (!getKey()) openKeyDialog();
-  setMode("simple");
-  renderTracks();
-  renderPending();
-  pending.forEach((job) => {
-    if (Date.now() - job.started > TIMEOUT_MS) finishJob(job); else poll(job);
+  // ---------- Auth (Supabase email + password) ----------
+  const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });
-  refreshCredits();
+  let authView = "signin"; // signin | signup | forgot | recovery
+  let started = false;
+
+  function authMsg(msg, isErr) {
+    const el = $("authMsg");
+    el.textContent = msg || "";
+    el.className = "auth-msg" + (msg ? " show" : "") + (isErr ? " err" : "");
+  }
+  function setAuthView(v) {
+    authView = v;
+    const copy = {
+      signin: ["Welcome back", "Sign in to your music studio.", "Sign in"],
+      signup: ["Create your account", "Start making songs in seconds.", "Create account"],
+      forgot: ["Reset your password", "We'll email you a link to set a new password.", "Send reset link"],
+      recovery: ["Choose a new password", "Enter a new password for your account.", "Update password"],
+    }[v];
+    [$("authTitle").textContent, $("authSub").textContent, $("authSubmit").textContent] = copy;
+    $("authTabs").classList.toggle("hidden", v === "forgot" || v === "recovery");
+    document.querySelectorAll("#authTabs button").forEach((b) => b.classList.toggle("active", b.dataset.auth === v));
+    $("authNameWrap").classList.toggle("hidden", v !== "signup");
+    $("authEmailWrap").classList.toggle("hidden", v === "recovery");
+    $("authPassWrap").classList.toggle("hidden", v === "forgot");
+    $("authPass").autocomplete = v === "signin" ? "current-password" : "new-password";
+    $("authPassHint").textContent = v === "signup" || v === "recovery" ? "at least 6 characters" : "";
+    $("forgotBtn").classList.toggle("hidden", v !== "signin");
+    $("backBtn").classList.toggle("hidden", v !== "forgot");
+    authMsg("");
+  }
+  document.querySelectorAll("#authTabs button").forEach((b) => b.addEventListener("click", () => setAuthView(b.dataset.auth)));
+  $("forgotBtn").onclick = () => setAuthView("forgot");
+  $("backBtn").onclick = () => setAuthView("signin");
+
+  const AUTH_ERRORS = {
+    "Invalid login credentials": "That email and password don't match. Try again or reset your password.",
+    "Email not confirmed": "Please confirm your email first — check your inbox for the link.",
+    "User already registered": "There's already an account with that email. Try signing in.",
+  };
+  const friendly = (e) => AUTH_ERRORS[e?.message] || e?.message || "Something went wrong. Please try again.";
+
+  $("authForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!sb) return authMsg("Couldn't load the sign-in service. Check your connection and refresh.", true);
+    const email = $("authEmail").value.trim();
+    const password = $("authPass").value;
+    if (authView !== "recovery" && !/^\S+@\S+\.\S+$/.test(email)) return authMsg("Enter a valid email address.", true);
+    if (authView !== "forgot" && password.length < 6) return authMsg("Password must be at least 6 characters.", true);
+
+    const btn = $("authSubmit");
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Please wait…"; authMsg("");
+    const redirectTo = location.origin + location.pathname;
+    try {
+      if (authView === "signin") {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else if (authView === "signup") {
+        const name = $("authName").value.trim().slice(0, 40);
+        const { data, error } = await sb.auth.signUp({
+          email, password, options: { data: name ? { name } : {}, emailRedirectTo: redirectTo },
+        });
+        if (error) throw error;
+        if (!data.session) {
+          setAuthView("signin");
+          $("authEmail").value = email;
+          authMsg(`Almost there${name ? ", " + name : ""}! Check ${email} for a confirmation link, then sign in.`);
+        }
+      } else if (authView === "forgot") {
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        authMsg(`If an account exists for ${email}, a reset link is on its way.`);
+      } else if (authView === "recovery") {
+        const { error } = await sb.auth.updateUser({ password });
+        if (error) throw error;
+        $("authPass").value = "";
+        history.replaceState(null, "", location.pathname);
+        authView = "signin";
+        onSignedIn((await sb.auth.getSession()).data.session);
+        setStatus(`Password updated${n()}! You're signed in.`, "ok");
+      }
+    } catch (err) {
+      authMsg(friendly(err), true);
+    } finally {
+      btn.disabled = false;
+      if (btn.textContent === "Please wait…") btn.textContent = label;
+    }
+  });
+
+  function scopeStorage(uid) {
+    const k = (base) => `${base}.${uid}`;
+    STORE_KEY = k(LEGACY.tracks); PENDING_KEY = k(LEGACY.pending); KEY_STORE = k(LEGACY.key); NAME_STORE = k(LEGACY.name);
+    // One-time: adopt data saved before accounts existed into the first account that signs in here.
+    try {
+      for (const [from, to] of [[LEGACY.tracks, STORE_KEY], [LEGACY.pending, PENDING_KEY], [LEGACY.key, KEY_STORE], [LEGACY.name, NAME_STORE]]) {
+        const v = localStorage.getItem(from);
+        if (v !== null && localStorage.getItem(to) === null) localStorage.setItem(to, v);
+        localStorage.removeItem(from);
+      }
+    } catch {}
+  }
+
+  function onSignedIn(session) {
+    document.body.classList.remove("booting");
+    if (!session || authView === "recovery") return;
+    document.body.classList.remove("signed-out");
+    if (started) return;
+    started = true;
+    const user = session.user;
+    $("userEmail").textContent = user.email;
+    $("userEmail").title = user.email;
+    scopeStorage(user.id);
+    const metaName = (user.user_metadata?.name || "").trim();
+    if (metaName && !getName()) { try { localStorage.setItem(NAME_STORE, metaName); } catch {} }
+    tracks = load(STORE_KEY, []);
+    pending = load(PENDING_KEY, []);
+    startApp();
+  }
+
+  function onSignedOut() {
+    document.body.classList.remove("booting");
+    // Reload so polling loops and in-memory state from the previous account are dropped.
+    if (started) return location.reload();
+    document.body.classList.add("signed-out");
+  }
+
+  $("signOutBtn").onclick = async () => {
+    $("signOutBtn").disabled = true;
+    try { await sb?.auth.signOut(); } finally { location.reload(); }
+  };
+
+  // ---------- App start (after sign-in) ----------
+  function startApp() {
+    $("refreshCredits").onclick = refreshCredits;
+    syncKeyButton();
+    syncName();
+    let asked = false;
+    try { asked = !!localStorage.getItem(NAME_STORE + ".asked"); localStorage.setItem(NAME_STORE + ".asked", "1"); } catch {}
+    if (!getName() && !asked) {
+      openNameDialog();
+    } else if (!getKey()) openKeyDialog();
+    else if (getName()) setStatus(`Welcome back${n()}! What are we making today?`, "ok");
+    setMode("simple");
+    renderTracks();
+    renderPending();
+    pending.forEach((job) => {
+      if (Date.now() - job.started > TIMEOUT_MS) finishJob(job); else poll(job);
+    });
+    refreshCredits();
+  }
+
+  // Opened from a password-reset email: ask for a new password before entering the app.
+  if (/type=recovery/.test(location.hash + location.search)) setAuthView("recovery");
+
+  if (!sb) {
+    document.body.classList.remove("booting");
+    authMsg("Couldn't load the sign-in service. Check your connection and refresh.", true);
+  } else {
+    sb.auth.onAuthStateChange((event, session) => {
+      // Defer so we never call Supabase from inside its own auth callback.
+      setTimeout(() => {
+        if (event === "PASSWORD_RECOVERY") {
+          document.body.classList.add("signed-out");
+          document.body.classList.remove("booting");
+          setAuthView("recovery");
+          return;
+        }
+        if (event === "SIGNED_OUT") return onSignedOut();
+        if (session) onSignedIn(session);
+        else if (event === "INITIAL_SESSION") onSignedOut();
+      }, 0);
+    });
+  }
 })();
 </script>
 </body>
